@@ -5,16 +5,24 @@
 
 #include <cstdint>
 #include <string>
-
+#include <vector>
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-
+    size_t _next_index=0;//下一个期望接受的编号
+    size_t _unassembly=0;//已存储，但还未重新排序的字节数
+    bool _is_eof=false;//是否让字节流结束输入
+    std::vector<char> _stream{};//接受窗口
+    std::vector<int> _dirty{};//指示该字节是否被存储了
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
 
+    size_t next(size_t ptr)
+    {
+      return (ptr+1)%_capacity;
+    }
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,
