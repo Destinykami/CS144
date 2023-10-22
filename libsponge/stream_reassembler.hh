@@ -18,12 +18,13 @@ class StreamReassembler {
     std::vector<int> _dirty{};//指示该字节是否被存储了
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
-
     size_t next(size_t ptr)
     {
       return (ptr+1)%_capacity;
     }
   public:
+    size_t head_index() const { return _next_index; }
+    bool input_ended() const { return _output.input_ended(); }
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,
     //! and those that have not yet been reassembled.

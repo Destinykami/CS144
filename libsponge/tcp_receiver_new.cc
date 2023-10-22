@@ -38,7 +38,7 @@ bool TCPReceiver::segment_received(const TCPSegment &seg)
         abs_seqno = unwrap(WrappingInt32(seg.header().seqno.raw_value()), WrappingInt32(_isn), abs_seqno);
         length = seg.length_in_sequence_space();
     }
-    
+
     if(seg.header().fin)
     {
         if (_fin_flag) 

@@ -5,13 +5,11 @@
 #include "stream_reassembler.hh"
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
-
 #include <optional>
 
 //! \brief The "receiver" part of a TCP implementation.
 
 //! Receives and reassembles segments into a ByteStream, and computes
-//! the acknowledgment number and window size to advertise back to the
 //! remote TCPSender.
 class TCPReceiver {
     //! Our data structure for re-assembling bytes.
@@ -19,6 +17,11 @@ class TCPReceiver {
 
     //! The maximum number of bytes we'll store.
     size_t _capacity;
+    bool _syn_flag = false;
+    bool _fin_flag = false;
+    size_t _base = 0;  // when unintital, equal zero for ackno special judge
+    size_t _isn = 0;
+    
 
   public:
     //! \brief Construct a TCP receiver
