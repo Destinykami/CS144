@@ -32,6 +32,17 @@ class TCPSender {
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
 
+    bool SYN_flag=false; //是否已经发送过SYN
+    bool FIN_flag=false; //是否已经发送过FIN 
+    size_t _window_size=0; //发送窗口大小
+    size_t recv_ackno=0; //最近一次收到的ack
+    uint64_t _bytes_in_flight = 0;
+    size_t timer=0; //计时器
+    bool timer_running=false;//计时器是否开始工作
+    size_t retransmission_timeout;//当前的RTO
+    size_t consecutive_retransmission=0;//连续重传的数目
+    std::queue<TCPSegment> segmentsToSend{};//等待发送的片段
+    //bool send_syn=true;
   public:
     //! Initialize a TCPSender
     TCPSender(const size_t capacity = TCPConfig::DEFAULT_CAPACITY,
@@ -52,10 +63,11 @@ class TCPSender {
 
     //! \brief Generate an empty-payload segment (useful for creating empty ACK segments)
     void send_empty_segment();
-
+    //void send_empty_segment(WrappingInt32 seqno);
     //! \brief create and send segments to fill as much of the window as possible
     void fill_window();
-
+    //发送TCP报文
+    void send_segment(TCPSegment seg);
     //! \brief Notifies the TCPSender of the passage of time
     void tick(const size_t ms_since_last_tick);
     //!@}
