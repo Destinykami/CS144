@@ -41,8 +41,7 @@ class TCPSender {
     bool timer_running=false;//计时器是否开始工作
     size_t retransmission_timeout;//当前的RTO
     size_t consecutive_retransmission=0;//连续重传的数目
-    std::queue<TCPSegment> segmentsToSend{};//等待发送的片段
-    //bool send_syn=true;
+    std::queue<TCPSegment> SegmentsBuffer{};//等待发送的片段
   public:
     //! Initialize a TCPSender
     TCPSender(const size_t capacity = TCPConfig::DEFAULT_CAPACITY,
@@ -65,9 +64,10 @@ class TCPSender {
     void send_empty_segment();
     //void send_empty_segment(WrappingInt32 seqno);
     //! \brief create and send segments to fill as much of the window as possible
-    void fill_window();
+    void fill_window(bool send_syn = true);
     //发送TCP报文
     void send_segment(TCPSegment seg);
+    void send_empty_segment(WrappingInt32 seqno); 
     //! \brief Notifies the TCPSender of the passage of time
     void tick(const size_t ms_since_last_tick);
     //!@}

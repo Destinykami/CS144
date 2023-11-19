@@ -16,9 +16,9 @@ class TCPReceiver {
     StreamReassembler _reassembler;
 
     //! The maximum number of bytes we'll store.
-    size_t _capacity;
-    bool _syn_flag = false;
-    bool _fin_flag = false;
+    size_t _capacity; //窗口容量
+    bool SYN_flag = false; //连接建立标志
+    bool FIN_flag = false; //连接结束标志
     size_t _base = 0;  // when unintital, equal zero for ackno special judge
     size_t _isn = 0;
     

@@ -25,12 +25,15 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 
 uint64_t TCPSender::bytes_in_flight() const { return _bytes_in_flight; }
 
-void TCPSender::fill_window() {
+void TCPSender::fill_window(bool send_syn) {
     if (!SYN_flag) {
-        TCPSegment seg;
-        seg.header().syn = true;
-        send_segment(seg);
-        SYN_flag = true;
+        if (send_syn) {
+            TCPSegment seg;
+            seg.header().syn = true;
+            send_segment(seg);
+            SYN_flag = true;
+        }
+
         return;
     }
     // 设置当前发送窗口的大小
@@ -71,17 +74,21 @@ bool TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     }
     recv_ackno = abs_ackno;
     // 收到了当前ack,说明当前ack之前的报文已经全部收到了,从发送缓存中弹出
-    while (!segmentsToSend.empty()) {
-        TCPSegment seg = segmentsToSend.front();
+    while (!SegmentsBuffer.empty()) {
+        TCPSegment seg = SegmentsBuffer.front();
         if (unwrap(seg.header().seqno, _isn, _next_seqno) + seg.length_in_sequence_space() <= abs_ackno) {
             _bytes_in_flight -= seg.length_in_sequence_space();
-            segmentsToSend.pop();
+            SegmentsBuffer.pop();
         } else
             break;
     }
     fill_window();
     retransmission_timeout = _initial_retransmission_timeout;  // 重置RTO
     consecutive_retransmission = 0;
+    if (!SegmentsBuffer.empty()) {
+        timer_running = true;
+        timer = 0;
+    }
     return true;
 }
 
@@ -89,15 +96,15 @@ bool TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 void TCPSender::tick(const size_t ms_since_last_tick)  // 超时重传
 {
     timer += ms_since_last_tick;
-    if (timer >= retransmission_timeout && !segmentsToSend.empty())  // 发现超时
+    if (timer >= retransmission_timeout && !SegmentsBuffer.empty())  // 发现超时
     {
-        _segments_out.push(segmentsToSend.front());  // 在TCPSender中，加入_segments_out则视为已发送
+        _segments_out.push(SegmentsBuffer.front());  // 在TCPSender中，加入_segments_out则视为已发送
         retransmission_timeout *= 2;                 // 指数回退
         consecutive_retransmission++;                // 记录连续重传的次数
         timer_running = true;
         timer = 0;  // 重新计时
     }
-    if (segmentsToSend.empty())  // 发送完毕
+    if (SegmentsBuffer.empty())  // 发送完毕
     {
         timer = 0;
         timer_running = false;
@@ -111,18 +118,18 @@ void TCPSender::send_empty_segment() {
     seg.header().seqno = wrap(_next_seqno, _isn);
     _segments_out.push(seg);
 }
-/*
+
 void TCPSender::send_empty_segment(WrappingInt32 seqno) {
     TCPSegment seg;
     seg.header().seqno = seqno;
     _segments_out.push(seg);
-}*/
+}
 void TCPSender::send_segment(TCPSegment seg) {
     seg.header().seqno = wrap(_next_seqno, _isn);
     _next_seqno += seg.length_in_sequence_space();  // 下一个seq为当前seq+发送的字节数
     _bytes_in_flight += seg.length_in_sequence_space();
     _segments_out.push(seg);
-    segmentsToSend.push(seg);
+    SegmentsBuffer.push(seg);
     if (!timer_running)  // 启动计时器
     {
         timer = 0;
